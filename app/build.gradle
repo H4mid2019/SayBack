@@ -1,0 +1,97 @@
+plugins {
+    id 'com.android.application' version '9.1.1'
+    id 'org.jetbrains.kotlin.android' version '2.2.10'
+    id 'io.gitlab.arturbosch.detekt' version '1.23.7'
+    id 'com.diffplug.spotless' version '6.25.0'
+}
+
+android {
+    namespace 'com.example.callsummarizer'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.example.callsummarizer"
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    buildFeatures {
+        viewBinding true
+    }
+    lint {
+        abortOnError true
+        warningsAsErrors false
+        checkReleaseBuilds true
+        // Generated/auto-fix friendly noise we don't want to block CI on:
+        disable 'OldTargetApi', 'GoogleAppIndexingWarning', 'MissingTranslation'
+        // Lint report formats
+        htmlReport true
+        textReport true
+        xmlReport false
+    }
+}
+
+detekt {
+    toolVersion = '1.23.7'
+    source.setFrom(files('src/main/java'))
+    buildUponDefaultConfig = true
+    allRules = false
+    // Generate a baseline once: ./gradlew detektBaseline   then commit detekt-baseline.xml
+    baseline = file('detekt-baseline.xml')
+}
+
+tasks.named('detekt').configure {
+    reports {
+        html.required.set(true)
+        xml.required.set(false)
+        txt.required.set(false)
+        sarif.required.set(false)
+    }
+}
+
+spotless {
+    kotlin {
+        target 'src/**/*.kt'
+        ktlint('1.4.1') // Run `./gradlew spotlessApply` to autocorrect.
+    }
+    kotlinGradle {
+        target '*.gradle.kts' // Only Kotlin Gradle files; our build.gradle is Groovy.
+        ktlint('1.4.1')
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.18.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.13.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // Live transcription (WebSocket) + LLM HTTP calls
+    implementation 'com.squareup.okhttp3:okhttp:5.0.0'
+
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1'
+
+    // JVM unit tests. The Android SDK's org.json is stubbed on the JVM (throws
+    // "Method not mocked"), so we add the real artifact for tests only.
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'com.google.truth:truth:1.4.4'
+    testImplementation 'org.json:json:20240303'
+}

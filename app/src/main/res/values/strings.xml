@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Call Summarizer</string>
+    <string name="context_label">Call context</string>
+    <string name="context_helper">Anything that helps answer questions during the call — purpose of the call, your name, EGN/ID, address, account numbers, current plan, recent issues, etc. The more detail, the better the suggested replies.</string>
+    <string name="context_hint">e.g. Credit screening from Bank X. My name is …, EGN …, address …, monthly income …</string>
+    <string name="save_context">Save Context</string>
+    <string name="context_saved">Context saved</string>
+    <string name="test_start">Start listening (test)</string>
+    <string name="test_stop">Stop listening</string>
+    <string name="test_hint">Test mode listens to the mic outside of a call so you can verify the pipeline.</string>
+    <string name="notif_stop_action">Stop</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_open">Settings</string>
+    <string name="settings_section_keys">API keys (stored encrypted on device)</string>
+    <string name="settings_section_models">Models</string>
+    <string name="settings_section_lang">Source language</string>
+    <string name="settings_deepgram_key">Deepgram API key</string>
+    <string name="settings_openrouter_key">OpenRouter API key</string>
+    <string name="settings_deepgram_model">Deepgram model</string>
+    <string name="settings_deepgram_model_helper">Default: nova-3. Other options: nova-2, enhanced.</string>
+    <string name="settings_openrouter_model">OpenRouter model</string>
+    <string name="settings_openrouter_model_helper">e.g. openai/gpt-4o-mini, anthropic/claude-haiku-4-5, google/gemini-flash-1.5</string>
+    <string name="settings_language">Language code (BCP-47)</string>
+    <string name="settings_language_helper">bg = Bulgarian, en = English, de = German, fr = French, ru = Russian, fa = Persian, …</string>
+    <string name="settings_section_script">Reply script</string>
+    <string name="settings_reply_script">Output letters</string>
+    <string name="settings_reply_script_helper">Latin reads phonetically (good for Bulgarian if you don\'t read Cyrillic). Native = same script as the source language.</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="keys_missing_toast">Add your API keys in Settings first</string>
+    <string name="usage_hint">The app will automatically start listening when you pick up a call. Remember to turn ON speakerphone for the best results.</string>
+    <string name="overlay_waiting">Listening…</string>
+    <string name="overlay_muted_by_os">OS muted mic — phone call holds it exclusively</string>
+    <string name="label_heard">Heard</string>
+    <string name="label_means">Means</string>
+    <string name="label_say">Say</string>
+    <string name="notif_title">Call Monitoring Active</string>
+    <string name="notif_text">Listening for questions…</string>
+    <string name="notif_channel_name">Call Service</string>
+</resources>

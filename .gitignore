@@ -1,0 +1,35 @@
+# Local config (contains SDK path + any leftover BYO-build keys)
+local.properties
+
+# Gradle
+.gradle/
+build/
+gradle/gradle-daemon-jvm.properties
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+.kotlin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output artifacts
+*.apk
+*.aab
+*.aar
+*.jar
+
+# Captures
+captures/
+
+# Keystores — never commit
+*.jks
+*.keystore
+keystore.properties
+
+# Lint reports (baselines kept on purpose, only suppress generated outputs)
+lint-report-*.html
+lint-results-*.html

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CallService.kt$CallService$@android.annotation.SuppressLint("MissingPermission") // RECORD_AUDIO is verified in onStartCommand private fun startRecording()</ID>
+    <ID>LongMethod:CallService.kt$CallService$@android.annotation.SuppressLint("MissingPermission") // RECORD_AUDIO is verified in onStartCommand private fun startRecording()</ID>
+    <ID>MagicNumber:Audio.kt$0xFF</ID>
+    <ID>MagicNumber:Audio.kt$8</ID>
+    <ID>MagicNumber:CallService.kt$CallService$1000</ID>
+    <ID>MagicNumber:CallService.kt$CallService$16_000</ID>
+    <ID>MagicNumber:CallService.kt$CallService$20</ID>
+    <ID>MagicNumber:CallService.kt$CallService$2000</ID>
+    <ID>MagicNumber:CallService.kt$CallService$2500</ID>
+    <ID>MagicNumber:CallService.kt$CallService$30</ID>
+    <ID>MagicNumber:CallService.kt$CallService$400</ID>
+    <ID>MagicNumber:CallService.kt$CallService$4096</ID>
+    <ID>MagicNumber:CallService.kt$CallService.&lt;no name provided&gt;$160</ID>
+    <ID>MagicNumber:CallService.kt$CallService.&lt;no name provided&gt;$200</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$300</ID>
+    <ID>MagicNumber:OverlayManager.kt$OverlayManager$100</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$private fun hasRecordAudio(): Boolean</ID>
+    <ID>ReturnCount:CallReceiver.kt$CallReceiver$override fun onReceive( context: Context, intent: Intent, )</ID>
+    <ID>ReturnCount:CallService.kt$CallService$@android.annotation.SuppressLint("MissingPermission") // RECORD_AUDIO is verified in onStartCommand private fun startRecording()</ID>
+    <ID>ReturnCount:CallService.kt$CallService$override fun onStartCommand( intent: Intent?, flags: Int, startId: Int, ): Int</ID>
+    <ID>ReturnCount:MainActivity.kt$MainActivity$private fun toggleTestSession()</ID>
+    <ID>TooGenericExceptionCaught:CallReceiver.kt$CallReceiver$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CallService.kt$CallService$e: Exception</ID>
+    <ID>TooManyFunctions:CallService.kt$CallService : Service</ID>
+    <ID>UseCheckOrError:CallService.kt$CallService$throw IllegalStateException("OpenRouter HTTP ${response.code}")</ID>
+  </CurrentIssues>
+</SmellBaseline>
