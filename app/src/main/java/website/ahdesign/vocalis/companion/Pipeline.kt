@@ -11,6 +11,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import okio.ByteString.Companion.toByteString
 import org.json.JSONObject
 import website.ahdesign.vocalis.AppSettings
@@ -20,7 +22,9 @@ import website.ahdesign.vocalis.Paths
 import website.ahdesign.vocalis.Suggestion
 import website.ahdesign.vocalis.Turn
 import website.ahdesign.vocalis.buildPrompt
+import website.ahdesign.vocalis.buildTagPrompt
 import website.ahdesign.vocalis.callOpenRouter
+import website.ahdesign.vocalis.companion.history.HistoryStore
 import website.ahdesign.vocalis.companion.offline.OnDeviceEngine
 import website.ahdesign.vocalis.openDeepgramSocket
 import website.ahdesign.vocalis.vocalisHttpClient
@@ -39,17 +43,57 @@ class Pipeline(
     private val context: Context,
 ) {
     private val onDevice by lazy { OnDeviceEngine(context) }
+    private val history = HistoryStore(context)
 
-    /** Consume the watch's PCM stream, emitting a [Turn] per detected utterance via [onTurn]. */
+    /**
+     * Consume the watch's PCM stream. Each utterance is saved (under one session id) + forwarded via
+     * [onTurn]; when the session (one listen→stop cycle) ends, an LLM produces a short topic tag.
+     */
     suspend fun process(
         pcm: InputStream,
         onTurn: suspend (Turn) -> Unit,
     ) {
-        when (val engine = chooseEngine()) {
-            Engine.ONLINE -> processOnline(pcm, onTurn)
-            else -> onDevice.process(pcm, engine, onTurn)
+        val settings = AppSettings(context)
+        val client = vocalisHttpClient()
+        val sessionId = now()
+        val heard = mutableListOf<String>()
+        val record: suspend (Turn) -> Unit = { turn ->
+            heard += turn.heard
+            history.save(turn, sessionId)
+            onTurn(turn)
+        }
+
+        val engine = chooseEngine()
+        when (engine) {
+            Engine.ONLINE -> processOnline(pcm, settings, client, record)
+            else -> onDevice.process(pcm, engine, record)
+        }
+
+        if (heard.isNotEmpty()) {
+            val tag = if (engine == Engine.ONLINE) generateTag(settings, client, heard) else ""
+            history.saveSession(sessionId, sessionId, now(), tag, heard.size)
         }
     }
+
+    /** One LLM call to label a finished session (e.g. "grocery store"). Empty on failure/offline. */
+    private suspend fun generateTag(
+        settings: AppSettings,
+        client: OkHttpClient,
+        heard: List<String>,
+    ): String =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                callOpenRouter(
+                    client,
+                    settings.openrouterKey,
+                    settings.openrouterModel,
+                    buildTagPrompt(settings.sourceLanguage, heard),
+                ).reply.trim()
+            }.getOrElse {
+                Log.e(TAG, "tag generation failed", it)
+                ""
+            }
+        }
 
     /**
      * Stream the watch's PCM to Deepgram and, for each final transcript, ask OpenRouter for a short
@@ -57,10 +101,10 @@ class Pipeline(
      */
     private suspend fun processOnline(
         pcm: InputStream,
+        settings: AppSettings,
+        client: OkHttpClient,
         onTurn: suspend (Turn) -> Unit,
     ) = coroutineScope {
-        val settings = AppSettings(context)
-        val client = vocalisHttpClient()
         val transcripts = Channel<String>(Channel.UNLIMITED)
 
         val socket =

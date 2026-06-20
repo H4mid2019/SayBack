@@ -101,3 +101,25 @@ fun buildPrompt(
         Output ONLY the JSON object. No prose, no code fences.
         """.trimIndent()
 }
+
+/**
+ * Prompt for a one-line topic tag summarizing a finished session's transcripts. Reuses the
+ * {translation, reply} JSON contract (tag goes in "reply") so [callOpenRouter]/[parseLlmAnswer]
+ * can parse it unchanged.
+ */
+fun buildTagPrompt(
+    lang: String,
+    transcripts: List<String>,
+): String {
+    val langName = LANGUAGE_NAMES[lang] ?: lang
+    val convo = transcripts.joinToString("\n")
+    return """
+        Here is what one side said during a $langName conversation:
+        $convo
+
+        Return a single JSON object with exactly one field:
+          "reply": a SHORT 1-3 word English topic tag for this conversation
+                   (e.g. "grocery store", "doctor visit", "taxi", "bank call").
+        Output ONLY the JSON object. No prose, no code fences.
+        """.trimIndent()
+}

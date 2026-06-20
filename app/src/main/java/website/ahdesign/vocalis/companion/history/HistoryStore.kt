@@ -10,23 +10,37 @@ import website.ahdesign.vocalis.Suggestion
 import website.ahdesign.vocalis.Turn
 import java.io.File
 
+/** One conversation session (a listen→stop cycle) with its turns and an LLM topic tag. */
+data class Session(
+    val id: Long,
+    val startTs: Long,
+    val endTs: Long,
+    val tag: String,
+    val turns: List<Turn>,
+)
+
 /**
- * History lives on the PHONE as an append-only JSON-lines file (`history.jsonl` in app storage):
- * one turn per line, cheap to append and crash-safe. Read back newest-first by [recent].
- *
- * Optional [HistorySync] POSTs new turns to a user endpoint for cross-device history (off by default).
+ * History lives on the PHONE as two append-only JSON-lines files in app storage:
+ *  - `history.jsonl`  — one turn per line, each stamped with its `sessionId`.
+ *  - `sessions.jsonl` — one record per finished session: {id, startTs, endTs, tag, turnCount}.
+ * [sessions] joins them (newest session first). [HistorySync] optionally uploads turns.
  */
 class HistoryStore(
     context: Context,
 ) {
     private val sync = HistorySync(context)
-    private val file = File(context.filesDir, FILE_NAME)
+    private val turnsFile = File(context.filesDir, TURNS_FILE)
+    private val sessionsFile = File(context.filesDir, SESSIONS_FILE)
 
-    /** Append one turn as a JSON line. */
-    suspend fun save(turn: Turn): Unit =
+    /** Append one turn (tagged with its session). */
+    suspend fun save(
+        turn: Turn,
+        sessionId: Long,
+    ) {
         withContext(Dispatchers.IO) {
             val line =
                 JSONObject()
+                    .put("sessionId", sessionId)
                     .put("heard", turn.heard)
                     .put("meaning", turn.meaning)
                     .put("reply", turn.reply.text)
@@ -34,55 +48,104 @@ class HistoryStore(
                     .put("engine", turn.engine.name)
                     .put("ts", turn.tsEpochMs)
                     .toString()
-            runCatching { file.appendText("$line\n") }
-                .onSuccess { Log.i(TAG, "saved turn (${file.length()} bytes total)") }
-                .onFailure { Log.e(TAG, "history write failed", it) }
+            runCatching { turnsFile.appendText("$line\n") }
+                .onFailure { Log.e(TAG, "turn write failed", it) }
             runCatching { sync.maybeUpload(turn) }
                 .onFailure { Log.w(TAG, "history sync deferred", it) }
         }
+    }
 
-    /** The most recent [limit] turns, newest first. */
-    suspend fun recent(limit: Int = DEFAULT_LIMIT): List<Turn> =
+    /** Append the session record once the session ends. */
+    suspend fun saveSession(
+        id: Long,
+        startTs: Long,
+        endTs: Long,
+        tag: String,
+        turnCount: Int,
+    ) {
         withContext(Dispatchers.IO) {
-            if (!file.exists()) {
+            val line =
+                JSONObject()
+                    .put("id", id)
+                    .put("startTs", startTs)
+                    .put("endTs", endTs)
+                    .put("tag", tag)
+                    .put("turnCount", turnCount)
+                    .toString()
+            runCatching { sessionsFile.appendText("$line\n") }
+                .onSuccess { Log.i(TAG, "saved session '$tag' ($turnCount turns)") }
+                .onFailure { Log.e(TAG, "session write failed", it) }
+        }
+    }
+
+    /** All sessions, newest first, each with its turns (chronological within the session). */
+    suspend fun sessions(): List<Session> =
+        withContext(Dispatchers.IO) {
+            if (!sessionsFile.exists()) {
                 return@withContext emptyList()
             }
+            val turnsBySession =
+                runCatching {
+                    if (turnsFile.exists()) {
+                        turnsFile.readLines().mapNotNull(::parseTurnLine).groupBy({ it.first }, { it.second })
+                    } else {
+                        emptyMap()
+                    }
+                }.getOrDefault(emptyMap())
             runCatching {
-                file
+                sessionsFile
                     .readLines()
-                    .takeLast(limit)
-                    .mapNotNull(::parseLine)
+                    .mapNotNull { line -> parseSessionLine(line, turnsBySession) }
                     .asReversed()
             }.getOrElse {
-                Log.e(TAG, "history read failed", it)
+                Log.e(TAG, "sessions read failed", it)
                 emptyList()
             }
         }
 
-    /** Delete all saved history. */
+    /** Delete all saved history (turns + sessions). */
     suspend fun clear() {
         withContext(Dispatchers.IO) {
-            runCatching { file.delete() }
-                .onFailure { Log.e(TAG, "history clear failed", it) }
+            runCatching {
+                turnsFile.delete()
+                sessionsFile.delete()
+            }.onFailure { Log.e(TAG, "history clear failed", it) }
         }
     }
 
-    private fun parseLine(line: String): Turn? =
+    private fun parseTurnLine(line: String): Pair<Long, Turn>? =
         runCatching {
             val o = JSONObject(line)
-            Turn(
-                heard = o.getString("heard"),
-                meaning = o.getString("meaning"),
-                reply = Suggestion(o.getString("reply"), o.optString("phonetic").ifBlank { null }),
-                engine = runCatching { Engine.valueOf(o.optString("engine")) }.getOrDefault(Engine.ONLINE),
-                tsEpochMs = o.optLong("ts"),
+            o.optLong("sessionId") to
+                Turn(
+                    heard = o.getString("heard"),
+                    meaning = o.getString("meaning"),
+                    reply = Suggestion(o.getString("reply"), o.optString("phonetic").ifBlank { null }),
+                    engine = runCatching { Engine.valueOf(o.optString("engine")) }.getOrDefault(Engine.ONLINE),
+                    tsEpochMs = o.optLong("ts"),
+                )
+        }.getOrNull()
+
+    private fun parseSessionLine(
+        line: String,
+        turnsBySession: Map<Long, List<Turn>>,
+    ): Session? =
+        runCatching {
+            val o = JSONObject(line)
+            val id = o.getLong("id")
+            Session(
+                id = id,
+                startTs = o.optLong("startTs"),
+                endTs = o.optLong("endTs"),
+                tag = o.optString("tag"),
+                turns = turnsBySession[id].orEmpty(),
             )
         }.getOrNull()
 
     companion object {
         private const val TAG = "HistoryStore"
-        private const val FILE_NAME = "history.jsonl"
-        private const val DEFAULT_LIMIT = 100
+        private const val TURNS_FILE = "history.jsonl"
+        private const val SESSIONS_FILE = "sessions.jsonl"
     }
 }
 

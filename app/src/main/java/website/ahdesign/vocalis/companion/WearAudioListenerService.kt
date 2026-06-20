@@ -8,7 +8,6 @@ import com.google.android.gms.wearable.WearableListenerService
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import website.ahdesign.vocalis.Paths
-import website.ahdesign.vocalis.companion.history.HistoryStore
 import java.io.InputStream
 
 /**
@@ -23,7 +22,6 @@ import java.io.InputStream
 class WearAudioListenerService : WearableListenerService() {
     private val channelClient by lazy { Wearable.getChannelClient(this) }
     private val pipeline by lazy { Pipeline(applicationContext) }
-    private val history by lazy { HistoryStore(applicationContext) }
 
     override fun onChannelOpened(channel: ChannelClient.Channel) {
         if (channel.path != Paths.AUDIO_CHANNEL) return
@@ -34,7 +32,6 @@ class WearAudioListenerService : WearableListenerService() {
                 runCatching {
                     val input: InputStream = channelClient.getInputStream(channel).await()
                     pipeline.process(input) { turn ->
-                        history.save(turn)
                         ResultSender.send(this@WearAudioListenerService, sourceNodeId, turn)
                     }
                 }.onFailure { Log.e(TAG, "channel processing failed", it) }
