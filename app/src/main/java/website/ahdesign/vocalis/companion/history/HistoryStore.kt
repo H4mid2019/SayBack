@@ -59,6 +59,14 @@ class HistoryStore(
             }
         }
 
+    /** Delete all saved history. */
+    suspend fun clear() {
+        withContext(Dispatchers.IO) {
+            runCatching { file.delete() }
+                .onFailure { Log.e(TAG, "history clear failed", it) }
+        }
+    }
+
     private fun parseLine(line: String): Turn? =
         runCatching {
             val o = JSONObject(line)
