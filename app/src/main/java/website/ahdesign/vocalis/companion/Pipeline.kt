@@ -68,7 +68,6 @@ class Pipeline(
                 client,
                 DeepgramConfig(settings.deepgramKey, settings.deepgramModel, settings.sourceLanguage),
             ) { text, isFinal ->
-                Log.i(TAG, "dg callback final=$isFinal '$text'")
                 if (isFinal) transcripts.trySend(text)
             }
 

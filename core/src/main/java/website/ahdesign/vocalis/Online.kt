@@ -24,7 +24,6 @@ private const val WS_READ_TIMEOUT_MS = 0L // keep the WS open indefinitely
 private const val WS_PING_SECONDS = 20L
 private const val HTTP_CALL_TIMEOUT_SECONDS = 30L
 private const val ERROR_BODY_PREVIEW = 400
-private const val DG_MSG_PREVIEW = 200
 
 /** OkHttp client tuned for a long-lived Deepgram WS plus short OpenRouter calls. */
 fun vocalisHttpClient(): OkHttpClient =
@@ -76,7 +75,6 @@ fun openDeepgramSocket(
                 webSocket: WebSocket,
                 text: String,
             ) {
-                Log.i(TAG, "dg msg: ${text.take(DG_MSG_PREVIEW)}")
                 val json = JSONObject(text)
                 val transcript =
                     json

@@ -135,7 +135,7 @@ class WearMicService : Service() {
                             }
                             val now = SystemClock.elapsedRealtime()
                             if (now - lastLog >= LOG_INTERVAL_MS) {
-                                Log.i(
+                                Log.v(
                                     TAG,
                                     "mic: read=$readFrames sent=$sentFrames " +
                                         "maxRms=${"%.0f".format(maxRms)} (floor=$SILENCE_RMS_FLOOR)",

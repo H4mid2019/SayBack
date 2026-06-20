@@ -10,6 +10,9 @@
     <string name="test_stop">Stop listening</string>
     <string name="test_hint">Test mode listens to the mic outside of a call so you can verify the pipeline.</string>
     <string name="watch_listening">⌚ Watch is listening…</string>
+    <string name="history_open">History</string>
+    <string name="history_title">History</string>
+    <string name="history_empty">No history yet. Use the watch to start a conversation.</string>
     <string name="notif_stop_action">Stop</string>
 
     <string name="settings_title">Settings</string>

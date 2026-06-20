@@ -5,9 +5,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,20 +62,22 @@ fun ListenScreen(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         item {
-            Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-                Text(if (listening) "Stop" else "Tap to listen")
-            }
-        }
-
-        if (listening) {
-            item {
-                Text(
-                    "● Listening…",
-                    style = MaterialTheme.typography.title3,
-                    color = MaterialTheme.colors.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            if (listening) {
+                // While listening, the button IS the indicator: "● Listening…" with a small "Stop".
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier.fillMaxWidth(0.85f).height(40.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("● Listening…", style = MaterialTheme.typography.caption1)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Stop", style = MaterialTheme.typography.caption3)
+                    }
+                }
+            } else {
+                Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Tap to listen")
+                }
             }
         }
 
@@ -92,7 +98,7 @@ private fun LatestCard(turn: Turn) {
         Column(Modifier.fillMaxWidth().padding(4.dp)) {
             Text(
                 turn.reply.text,
-                style = MaterialTheme.typography.title3,
+                style = MaterialTheme.typography.title1,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )

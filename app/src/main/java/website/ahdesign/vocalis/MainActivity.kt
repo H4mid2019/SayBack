@@ -63,11 +63,8 @@ class MainActivity : AppCompatActivity() {
         binding.testButton.setOnClickListener { toggleTestSession() }
 
         requestNeededPermissions()
-        observeWatchSession()
-    }
 
-    /** Show the banner while the watch is actively streaming audio to this phone. */
-    private fun observeWatchSession() {
+        // Show the banner while the watch is actively streaming audio to this phone.
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 WatchSession.listening.collect { listening ->
@@ -89,6 +86,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean =
         when (item.itemId) {
+            R.id.action_history -> {
+                startActivity(Intent(this, HistoryActivity::class.java))
+                true
+            }
             R.id.action_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true

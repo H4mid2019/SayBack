@@ -2,36 +2,79 @@ package website.ahdesign.vocalis.companion.history
 
 import android.content.Context
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import website.ahdesign.vocalis.Engine
+import website.ahdesign.vocalis.Suggestion
 import website.ahdesign.vocalis.Turn
+import java.io.File
 
 /**
- * Full history lives on the PHONE. The watch only mirrors the last few turns.
+ * History lives on the PHONE as an append-only JSON-lines file (`history.jsonl` in app storage):
+ * one turn per line, cheap to append and crash-safe. Read back newest-first by [recent].
  *
- * Storage: Room (suggested). Each row = one [Turn] (heard / meaning / reply / engine / ts).
- * Optional sync: [HistorySync] POSTs new turns to the user's endpoint so a web view can show
- * cross-device history. Off by default.
+ * Optional [HistorySync] POSTs new turns to a user endpoint for cross-device history (off by default).
  */
 class HistoryStore(
     context: Context,
 ) {
     private val sync = HistorySync(context)
+    private val file = File(context.filesDir, FILE_NAME)
 
-    suspend fun save(turn: Turn) {
-        // Later: insert into Room.
-        Log.i(TAG, "save heard='${turn.heard.take(LOG_PREVIEW)}' engine=${turn.engine}")
-        runCatching { sync.maybeUpload(turn) }.onFailure { Log.w(TAG, "history sync deferred", it) }
-    }
+    /** Append one turn as a JSON line. */
+    suspend fun save(turn: Turn): Unit =
+        withContext(Dispatchers.IO) {
+            val line =
+                JSONObject()
+                    .put("heard", turn.heard)
+                    .put("meaning", turn.meaning)
+                    .put("reply", turn.reply.text)
+                    .put("phonetic", turn.reply.phonetic ?: "")
+                    .put("engine", turn.engine.name)
+                    .put("ts", turn.tsEpochMs)
+                    .toString()
+            runCatching { file.appendText("$line\n") }
+                .onSuccess { Log.i(TAG, "saved turn (${file.length()} bytes total)") }
+                .onFailure { Log.e(TAG, "history write failed", it) }
+            runCatching { sync.maybeUpload(turn) }
+                .onFailure { Log.w(TAG, "history sync deferred", it) }
+        }
 
-    suspend fun recent(limit: Int = DEFAULT_LIMIT): List<Turn> {
-        // Later: query Room, map entities -> Turn.
-        Log.v(TAG, "recent(limit=$limit)")
-        return emptyList()
-    }
+    /** The most recent [limit] turns, newest first. */
+    suspend fun recent(limit: Int = DEFAULT_LIMIT): List<Turn> =
+        withContext(Dispatchers.IO) {
+            if (!file.exists()) {
+                return@withContext emptyList()
+            }
+            runCatching {
+                file
+                    .readLines()
+                    .takeLast(limit)
+                    .mapNotNull(::parseLine)
+                    .asReversed()
+            }.getOrElse {
+                Log.e(TAG, "history read failed", it)
+                emptyList()
+            }
+        }
+
+    private fun parseLine(line: String): Turn? =
+        runCatching {
+            val o = JSONObject(line)
+            Turn(
+                heard = o.getString("heard"),
+                meaning = o.getString("meaning"),
+                reply = Suggestion(o.getString("reply"), o.optString("phonetic").ifBlank { null }),
+                engine = runCatching { Engine.valueOf(o.optString("engine")) }.getOrDefault(Engine.ONLINE),
+                tsEpochMs = o.optLong("ts"),
+            )
+        }.getOrNull()
 
     companion object {
         private const val TAG = "HistoryStore"
-        private const val LOG_PREVIEW = 40
-        private const val DEFAULT_LIMIT = 50
+        private const val FILE_NAME = "history.jsonl"
+        private const val DEFAULT_LIMIT = 100
     }
 }
 
@@ -45,8 +88,7 @@ class HistorySync(
 
     suspend fun maybeUpload(turn: Turn) {
         if (!enabled || endpoint.isNullOrBlank()) return
-        // Later: POST JSON {heard, meaning, replyText, engine, tsEpochMs} to `endpoint` with OkHttp;
-        //   mark the Room row synced on 2xx.
+        // Later: POST JSON {heard, meaning, reply, engine, ts} to `endpoint` with OkHttp.
         Log.i(TAG, "would upload turn (heard len=${turn.heard.length}) to $endpoint")
     }
 
